@@ -1,23 +1,11 @@
 name = "medischedule"
 compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = ".next"
 
-# Cloudflare D1 Database Binding
-[[d1_databases]]
-binding = "DB"
-database_name = "medischedule-db"
-database_id = "d1-database-id-placeholder"
+# Cloudflare D1 Database Binding (Configurar o vincular en Settings > Functions del panel de Pages)
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "medischedule-db"
+# database_id = "<your-d1-database-id>"
 
-# Cloudflare KV Binding for Subdomain & Session Cache
-[[kv_namespaces]]
-binding = "CACHE"
-id = "kv-namespace-id-placeholder"
-
-# Cloudflare R2 Storage Binding for Medical Attachments
-[[r2_buckets]]
-binding = "STORAGE"
-bucket_name = "medischedule-files"
-
-# Automated Scheduled Tasks (Daily appointment reminder notifications)
-[triggers]
-crons = ["0 8 * * *"]
