@@ -4,6 +4,7 @@ export interface ParsedVoiceResult {
     | 'CONFIRM'
     | 'DENY'
     | 'GREET'
+    | 'FAREWELL'
     | 'BOOK_APPOINTMENT'
     | 'PROVIDE_NAME'
     | 'PROVIDE_DOCTOR'
@@ -35,7 +36,15 @@ export function parseSpanishVoiceInput(
 
   if (!text) return result;
 
-  // 1. Confirmations (Handle Unicode accents like sí)
+  // 1. Farewells (adiós, hasta luego, chao, etc.) - suspend conversation
+  if (
+    /(hasta luego|hasta pronto|adiós|adios|chao|chau|nos vemos|eso es todo|muchas gracias adiós|muchas gracias adios|terminar|finalizar|suspender|cancelar todo)/iu.test(text)
+  ) {
+    result.intent = 'FAREWELL';
+    return result;
+  }
+
+  // 2. Confirmations (Handle Unicode accents like sí)
   if (/^(sí|si|claro|correcto|afirmativo|confirmo|confirmar|está bien|exacto|dale|perfecto|por favor|de acuerdo)($|[\s,.:])/iu.test(text) ||
       /\b(confirmo|confirmar|está bien|de acuerdo)\b/iu.test(text)) {
     result.intent = 'CONFIRM';

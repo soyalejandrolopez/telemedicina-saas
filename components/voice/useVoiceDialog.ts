@@ -55,9 +55,9 @@ export function useVoiceDialog({
   const startListeningRef = useRef<() => Promise<boolean>>(() => Promise.resolve(false));
   const stopListeningRef = useRef<() => void>(() => {});
 
-  // Helper to speak agent message and resume listening
+  // Helper to speak agent message and optionally resume listening
   const agentSpeak = useCallback(
-    (text: string, nextStep?: DialogStep) => {
+    (text: string, nextStep?: DialogStep, resumeListening: boolean = true) => {
       if (nextStep) {
         setStep(nextStep);
         stepRef.current = nextStep;
@@ -68,10 +68,19 @@ export function useVoiceDialog({
       stopListeningRef.current();
 
       speak(text, () => {
-        // Once agent finishes speaking, immediately re-open the microphone
-        setTimeout(() => {
-          startListeningRef.current();
-        }, 200);
+        if (resumeListening) {
+          // Once agent finishes speaking, re-open the microphone if continuous dialogue is expected
+          setTimeout(() => {
+            startListeningRef.current();
+          }, 200);
+        } else {
+          // Explicitly suspend / stop recognition when flow terminates (goodbye or booking complete)
+          stopListeningRef.current();
+          if (nextStep === 'SUCCESS' || nextStep === 'IDLE') {
+            setStep('IDLE');
+            stepRef.current = 'IDLE';
+          }
+        }
       });
     },
     [speak, addMessage]
@@ -91,6 +100,21 @@ export function useVoiceDialog({
       const parsed = parseSpanishVoiceInput(rawText, doctors);
       const curStep = stepRef.current;
       const ctx = { ...contextRef.current };
+
+      // Immediately handle farewell or suspension request from user
+      if (
+        parsed.intent === 'FAREWELL' ||
+        /(hasta luego|hasta pronto|adiós|adios|chao|chau|nos vemos|eso es todo|muchas gracias adiós|muchas gracias adios|terminar|finalizar|suspender)/iu.test(rawText)
+      ) {
+        stopListeningRef.current();
+        agentSpeak(
+          'Hasta luego. Que tenga un excelente día y gracias por comunicarse con la clínica.',
+          'IDLE',
+          false
+        );
+        setIsProcessing(false);
+        return;
+      }
 
       try {
         switch (curStep) {
@@ -315,9 +339,12 @@ export function useVoiceDialog({
                 onAppointmentBooked(appointment);
               }
 
+              // Final confirmation: speaks confirmation message and immediately suspends mic
+              stopListeningRef.current();
               agentSpeak(
-                `¡Excelente, ${ctx.patientName}! Su cita ha sido confirmada y agendada exitosamente para el ${ctx.dateDisplay} a las ${ctx.slotTime}. Le esperamos en la clínica.`,
-                'SUCCESS'
+                `¡Excelente, ${ctx.patientName}! Su cita ha sido confirmada y agendada exitosamente para el ${ctx.dateDisplay} a las ${ctx.slotTime}. Le esperamos en la clínica. Hasta pronto.`,
+                'SUCCESS',
+                false
               );
             } else if (parsed.intent === 'DENY') {
               agentSpeak('De acuerdo, cancelamos este agendamiento. ¿Desea iniciar de nuevo?', 'GREETING');

@@ -92,6 +92,7 @@ export function VoiceAgentRoom({
     'Con la Dra. Sofía Morales',
     'Para mañana por favor',
     'Sí, confirmo la cita',
+    'Hasta luego, adiós',
   ];
 
   return (
