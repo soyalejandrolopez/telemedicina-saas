@@ -7,9 +7,9 @@ compatibility_flags = ["nodejs_compat"]
 directory = "out"
 binding = "ASSETS"
 
-# Descomentar e ingresar el UUID generado en Cloudflare tras ejecutar: npx wrangler d1 create medischedule-db
-# [[d1_databases]]
-# binding = "DB"
-# database_name = "medischedule-db"
-# database_id = "<UUID-DE-TU-BASE-D1>"
-# migrations_dir = "migrations"
+[[d1_databases]]
+binding = "DB"
+database_name = "medischedule-db"
+database_id = "02aa8350-a3de-4ab5-ab08-1fa6b1d8bfe8"
+migrations_dir = "migrations"
+
