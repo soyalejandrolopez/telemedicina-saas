@@ -62,8 +62,19 @@ function populateStaticDir(targetDir) {
   }
 
   // 1. Copy public assets (e.g. hamster-software.jpg, icons) to target root
-  if (targetDir !== process.cwd() && fs.existsSync(publicDir)) {
-    fs.cpSync(publicDir, targetDir, { recursive: true });
+  if (fs.existsSync(publicDir)) {
+    if (targetDir !== process.cwd()) {
+      fs.cpSync(publicDir, targetDir, { recursive: true });
+    } else {
+      const publicFiles = fs.readdirSync(publicDir);
+      for (const file of publicFiles) {
+        const src = path.join(publicDir, file);
+        const dest = path.join(targetDir, file);
+        if (fs.statSync(src).isFile()) {
+          fs.copyFileSync(src, dest);
+        }
+      }
+    }
   }
 
   // 2. Copy generated HTML pages to target root so Cloudflare Pages serves them
@@ -107,12 +118,11 @@ function populateStaticDir(targetDir) {
   }
 
   // 4. Create _redirects and _headers for Cloudflare Pages clean routing
-  const redirectsContent = `/login /login.html 200
-/register /register.html 200
-/agent /#demo-agente 302
+  const redirectsContent = `/agent /#demo-agente 302
 /dashboard /login 302
 /appointments /login 302
 /patients /login 302
+
 /doctors /login 302
 `;
   fs.writeFileSync(path.join(targetDir, '_redirects'), redirectsContent, 'utf8');

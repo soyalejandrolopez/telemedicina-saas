@@ -1,7 +1,6 @@
-/login /login.html 200
-/register /register.html 200
 /agent /#demo-agente 302
 /dashboard /login 302
 /appointments /login 302
 /patients /login 302
+
 /doctors /login 302
