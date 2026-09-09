@@ -1,3 +1,11 @@
+/*
+██╗  ██╗ █████╗ ███╗   ███╗███████╗████████╗███████╗██████╗     ███████╗ ██████╗ ███████╗████████╗██╗    ██╗ █████╗ ██████╗ ███████╗
+██║  ██║██╔══██╗████╗ ████║██╔════╝╚══██╔══╝██╔════╝██╔══██╗    ██╔════╝██╔═══██╗██╔════╝╚══██╔══╝██║    ██║██╔══██╗██╔══██╗██╔════╝
+███████║███████║██╔████╔██║███████╗   ██║   █████╗  ██████╔╝    ███████╗██║   ██║█████╗     ██║   ██║ █╗ ██║███████║██████╔╝█████╗  
+██╔══██║██╔══██║██║╚██╔╝██║╚════██║   ██║   ██╔══╝  ██╔══██╗    ╚════██║██║   ██║██╔══╝     ██║   ██║███╗██║██╔══██║██╔══██╗██╔══╝  
+██║  ██║██║  ██║██║ ╚═╝ ██║███████║   ██║   ███████╗██║  ██║    ███████║╚██████╔╝██║        ██║   ╚███╔███╔╝██║  ██║██║  ██║███████╗
+╚═╝  ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝╚══════╝   ╚═╝   ╚══════╝╚═╝  ╚═╝    ╚══════╝ ╚═════╝ ╚═╝        ╚═╝    ╚══╝╚══╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝
+*/
 const fs = require('fs');
 const path = require('path');
 
@@ -11,15 +19,18 @@ const asciiArt = `██╗  ██╗ █████╗ ███╗   ██�
 const jsComment = `/*\n${asciiArt}\n*/\n`;
 const htmlComment = `<!--\n${asciiArt}\n-->\n`;
 
-function processDir(dir) {
+function processDir(dir, isRecursive = true) {
   if (!fs.existsSync(dir)) return;
+  const ignoredDirs = new Set(['node_modules', '.git', 'app', 'components', 'lib', 'scripts', 'tests', 'data', 'public']);
   const entries = fs.readdirSync(dir, { withFileTypes: true });
   for (const entry of entries) {
     const fullPath = path.join(dir, entry.name);
     if (entry.isDirectory()) {
-      processDir(fullPath);
+      if (isRecursive && !ignoredDirs.has(entry.name)) {
+        processDir(fullPath, isRecursive);
+      }
     } else if (entry.isFile()) {
-      if (entry.name.endsWith('.js')) {
+      if (entry.name.endsWith('.js') && (fullPath.includes('.next') || fullPath.includes('chunks'))) {
         let content = fs.readFileSync(fullPath, 'utf8');
         if (!content.startsWith('/*\n' + asciiArt)) {
           fs.writeFileSync(fullPath, jsComment + content, 'utf8');
@@ -33,6 +44,7 @@ function processDir(dir) {
     }
   }
 }
+
 
 // Inject into compiled client chunks and server output
 processDir(path.join(process.cwd(), '.next', 'static', 'chunks'));
@@ -50,7 +62,7 @@ function populateStaticDir(targetDir) {
   }
 
   // 1. Copy public assets (e.g. hamster-software.jpg, icons) to target root
-  if (fs.existsSync(publicDir)) {
+  if (targetDir !== process.cwd() && fs.existsSync(publicDir)) {
     fs.cpSync(publicDir, targetDir, { recursive: true });
   }
 
@@ -117,13 +129,14 @@ function populateStaticDir(targetDir) {
   processDir(targetDir);
 }
 
-// Populate out (standard for Cloudflare Pages), dist, and .next
+// Populate root (if Cloudflare Pages is set to root), out (standard), dist, and .next
 const outDir = path.join(process.cwd(), 'out');
 const distDir = path.join(process.cwd(), 'dist');
 
+populateStaticDir(process.cwd());
 populateStaticDir(outDir);
 populateStaticDir(distDir);
 populateStaticDir(nextDir);
 
-console.log('✔ Postbuild: Código ASCII inyectado y artefactos estáticos (.html, /_next/static, public, _redirects, _headers) preparados en out/, dist/ y .next/ para Cloudflare Pages');
+console.log('✔ Postbuild: Artefactos estáticos (.html, /_next/static, public, _redirects, _headers) preparados en ./, out/, dist/ y .next/ para Cloudflare Pages');
 
