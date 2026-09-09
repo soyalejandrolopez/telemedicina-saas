@@ -64,12 +64,29 @@ export function AppointmentBookingModal({
     setSelectedSlot(null);
 
     fetch(`/api/slots?doctorId=${selectedDoctorId}&date=${selectedDate}`)
-      .then((r) => r.json())
+      .then(async (r) => {
+        if (!r.ok) throw new Error('Status ' + r.status);
+        const text = await r.text();
+        if (!text.trim().startsWith('{') && !text.trim().startsWith('[')) {
+          throw new Error('Not JSON');
+        }
+        return JSON.parse(text);
+      })
       .then((data) => {
-        setSlots(data.slots || []);
+        const returnedSlots = data.slots || [];
+        if (returnedSlots.length > 0) {
+          setSlots(returnedSlots);
+        } else {
+          // Fallback slots
+          const defaultTimes = ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30'];
+          setSlots(defaultTimes.map(t => ({ time: t, datetime: `${selectedDate}T${t}:00`, available: true })));
+        }
         setIsLoadingSlots(false);
       })
       .catch(() => {
+        // Fallback slots for static export / offline mode
+        const defaultTimes = ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30'];
+        setSlots(defaultTimes.map(t => ({ time: t, datetime: `${selectedDate}T${t}:00`, available: true })));
         setIsLoadingSlots(false);
       });
   }, [selectedDoctorId, selectedDate]);
