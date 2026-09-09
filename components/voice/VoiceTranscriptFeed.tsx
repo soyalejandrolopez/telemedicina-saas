@@ -16,11 +16,18 @@ export function VoiceTranscriptFeed({
   isListening?: boolean;
   currentStep: DialogStep;
 }) {
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
+  // Desplazamiento suave interno UNICAMENTE al registrarse un nuevo mensaje finalizado
+  // Se mantiene fijo y quieto mientras el usuario habla (no reacciona a interimTranscript ni scrollea la ventana)
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, interimTranscript]);
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({
+        top: scrollContainerRef.current.scrollHeight,
+        behavior: 'smooth',
+      });
+    }
+  }, [messages.length]);
 
   const stepLabels: Record<DialogStep, string> = {
     IDLE: 'Listo para iniciar',
@@ -36,7 +43,7 @@ export function VoiceTranscriptFeed({
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-50/50 rounded-2xl border border-slate-200/80 p-4 overflow-hidden">
+    <div className="flex flex-col h-full bg-slate-50/50 rounded-2xl border border-slate-200/80 p-4 overflow-hidden shadow-xs">
       {/* Feed Header */}
       <div className="flex items-center justify-between pb-3 border-b border-slate-200/60 mb-3 shrink-0">
         <div className="flex items-center gap-2">
@@ -50,8 +57,12 @@ export function VoiceTranscriptFeed({
         </span>
       </div>
 
-      {/* Messages List */}
-      <div className="flex-1 overflow-y-auto space-y-3.5 pr-2">
+      {/* Messages List with fixed position and visible scrollbar */}
+      <div
+        ref={scrollContainerRef}
+        className="flex-1 overflow-y-auto space-y-3.5 pr-2 overscroll-contain transcript-scrollbar"
+        style={{ scrollbarGutter: 'stable' }}
+      >
         {messages.length === 0 && (
           <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-400">
             <Volume2 className="w-8 h-8 text-slate-300 mb-2" />
@@ -121,8 +132,6 @@ export function VoiceTranscriptFeed({
             </div>
           </div>
         )}
-
-        <div ref={bottomRef} />
       </div>
     </div>
   );

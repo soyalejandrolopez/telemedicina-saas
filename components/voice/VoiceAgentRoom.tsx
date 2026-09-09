@@ -331,12 +331,14 @@ export function VoiceAgentRoom({
                   : 'Presiona el micrófono o utiliza las respuestas sugeridas a continuación.'}
               </p>
 
-              {/* Live interim speech bubble directly under mic */}
-              {isListening && interimTranscript && (
-                <div className="mt-3 px-4 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold animate-pulse">
-                  Detectando: "{interimTranscript}..."
-                </div>
-              )}
+              {/* Live interim speech bubble directly under mic with reserved height to prevent vertical jitter */}
+              <div className="min-h-[36px] mt-2 flex items-center justify-center">
+                {isListening && interimTranscript ? (
+                  <div className="px-4 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold animate-pulse max-w-md truncate">
+                    Detectando: "{interimTranscript}..."
+                  </div>
+                ) : null}
+              </div>
 
               {/* Acoustic Wave Animation */}
               <VoiceWaveVisualizer
@@ -443,7 +445,7 @@ export function VoiceAgentRoom({
         </Card>
 
         {/* Live Conversation Transcript Feed */}
-        <div className="flex-1 min-h-[420px]">
+        <div className="flex-1 min-h-[420px] max-h-[480px] flex flex-col">
           <VoiceTranscriptFeed
             messages={messages}
             interimTranscript={interimTranscript}

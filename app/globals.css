@@ -48,3 +48,24 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+/* Dedicated visible scrollbar for voice transcript feed */
+.transcript-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 #f1f5f9;
+}
+.transcript-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+.transcript-scrollbar::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 8px;
+}
+.transcript-scrollbar::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 8px;
+}
+.transcript-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
