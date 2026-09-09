@@ -126,10 +126,6 @@ function populateStaticDir(targetDir) {
 
   // 4. Create _redirects and _headers for Cloudflare Pages clean routing
   const redirectsContent = `/agent /#demo-agente 302
-/dashboard /login 302
-/appointments /login 302
-/patients /login 302
-/doctors /login 302
 `;
   fs.writeFileSync(path.join(targetDir, '_redirects'), redirectsContent, 'utf8');
 

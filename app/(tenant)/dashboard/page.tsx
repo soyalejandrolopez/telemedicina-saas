@@ -1,39 +1,47 @@
-import React from 'react';
+'use client';
+
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { getCurrentTenant } from '@/lib/tenant/getTenant';
-import { listAppointments } from '@/lib/db/queries/appointments';
-import { listDoctors } from '@/lib/db/queries/doctors';
-import { listPatients } from '@/lib/db/queries/patients';
-import { Card, CardHeader } from '@/components/ui/Card';
+import { useTenant } from '@/components/layout/TenantProvider';
+import { apiGetAppointments, apiGetDoctors, apiGetPatients, ApiAppointment, ApiDoctor, ApiPatient } from '@/lib/api/client';
+import { Card } from '@/components/ui/Card';
 import { StatusBadge, SourceBadge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import {
   Calendar,
   Users,
   Mic,
-  Activity,
   ArrowUpRight,
-  Clock,
   Sparkles,
   Stethoscope,
   TrendingUp,
 } from 'lucide-react';
 
-export default async function DashboardPage() {
-  const tenant = await getCurrentTenant();
-  const tenantId = tenant?.id || 'demo';
+export default function DashboardPage() {
+  const { name: tenantName } = useTenant();
+  const [appointments, setAppointments] = useState<ApiAppointment[]>([]);
+  const [doctors, setDoctors] = useState<ApiDoctor[]>([]);
+  const [patients, setPatients] = useState<ApiPatient[]>([]);
+
+  useEffect(() => {
+    apiGetAppointments().then((appts) => {
+      if (appts) setAppointments(appts);
+    });
+    apiGetDoctors().then((docs) => {
+      if (docs) setDoctors(docs);
+    });
+    apiGetPatients().then((pats) => {
+      if (pats) setPatients(pats);
+    });
+  }, []);
 
   const today = new Date().toISOString().split('T')[0];
-  const allAppointments = listAppointments(tenantId);
-  const todayAppointments = allAppointments.filter((a) => a.datetime.startsWith(today));
-  const voiceAppointments = allAppointments.filter((a) => a.booked_via === 'voice_agent');
-  const doctors = listDoctors(tenantId);
-  const patients = listPatients(tenantId);
+  const todayAppointments = appointments.filter((a) => a.datetime.startsWith(today));
+  const voiceAppointments = appointments.filter((a) => a.booked_via === 'voice_agent');
 
-  // Rate of appointments booked via voice
   const voiceRate =
-    allAppointments.length > 0
-      ? Math.round((voiceAppointments.length / allAppointments.length) * 100)
+    appointments.length > 0
+      ? Math.round((voiceAppointments.length / appointments.length) * 100)
       : 0;
 
   return (
@@ -45,7 +53,7 @@ export default async function DashboardPage() {
             Panel de Gestión Clínica
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Bienvenido a {tenant?.name || 'MediSchedule'}. Monitoreo en tiempo real de consultas y agente de voz.
+            Bienvenido a {tenantName || 'Clínica San Rafael'}. Monitoreo en tiempo real de consultas y agente de voz.
           </p>
         </div>
 
@@ -86,7 +94,7 @@ export default async function DashboardPage() {
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            {allAppointments.length} citas totales registradas
+            {appointments.length} citas totales registradas
           </p>
         </Card>
 
@@ -209,18 +217,22 @@ export default async function DashboardPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {allAppointments.slice(0, 5).map((appt) => (
+                {appointments.slice(0, 5).map((appt) => (
                   <tr key={appt.id} className="hover:bg-slate-50/70 transition-colors">
                     <td className="px-6 py-4 font-semibold text-brand-900 whitespace-nowrap">
                       {appt.datetime.replace('T', ' — ')}
                     </td>
                     <td className="px-6 py-4 font-bold text-slate-900 whitespace-nowrap">
                       {appt.patient_name}
-                      <span className="block text-[11px] font-normal text-slate-400">{appt.patient_mrn}</span>
+                      {appt.patient_mrn && (
+                        <span className="block text-[11px] font-normal text-slate-400">{appt.patient_mrn}</span>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-slate-700">
                       {appt.doctor_name}
-                      <span className="block text-[11px] text-slate-400">{appt.doctor_specialty}</span>
+                      {appt.doctor_specialty && (
+                        <span className="block text-[11px] text-slate-400">{appt.doctor_specialty}</span>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-xs text-slate-600 max-w-xs truncate">
                       {appt.reason || 'Consulta regular'}

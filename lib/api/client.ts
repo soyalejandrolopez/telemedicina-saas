@@ -113,27 +113,27 @@ export async function apiGetDoctors(): Promise<ApiDoctor[]> {
   // Resilient fallback for static demo
   return [
     {
-      id: 'doc_yc83uckgmttqbj11',
-      name: 'Dr. Alejandro Mendoza',
-      specialty: 'Cardiología',
-      license_num: 'COL-MED-62118',
-      bio: 'Cardiólogo clínico intervencionista, experto en hipertensión arterial, ecocardiografía y arritmias.',
+      id: 'doc_9um6jsq7mtukub35',
+      name: 'Dra. Sofía Morales',
+      specialty: 'Medicina General',
+      license_num: 'COL-MED-84920',
+      bio: 'Especialista en medicina preventiva, control de enfermedades crónicas y chequeos integrales.',
       active: 1,
     },
     {
-      id: 'doc_ojolu4lpmttqbj12',
+      id: 'doc_047jgbd1mtukub35',
+      name: 'Dr. Alejandro Mendoza',
+      specialty: 'Cardiología',
+      license_num: 'COL-MED-62118',
+      bio: 'Cardiólogo clínico intervencionista, experto en hipertensión arterial y arritmias.',
+      active: 1,
+    },
+    {
+      id: 'doc_h7hj069rmtukub36',
       name: 'Dra. Elena Vargas',
       specialty: 'Pediatría',
       license_num: 'COL-MED-93451',
       bio: 'Atención pediátrica integral, control del niño sano y urgencias respiratorias infantiles.',
-      active: 1,
-    },
-    {
-      id: 'doc_39ebgkzzmttqbj11',
-      name: 'Dra. Sofía Morales',
-      specialty: 'Medicina General',
-      license_num: 'COL-MED-84920',
-      bio: 'Especialista en medicina preventiva, control de enfermedades crónicas y chequeos integrales con más de 12 años de experiencia clínica.',
       active: 1,
     },
   ];
@@ -148,7 +148,7 @@ export async function apiGetPatients(): Promise<ApiPatient[]> {
 
   return [
     {
-      id: 'pat_anvm4atcmttqbj12',
+      id: 'pat_bclrfygqmtukub36',
       mrn: 'EXP-100234',
       name: 'María Fernanda López',
       phone: '+34 612 345 678',
@@ -157,7 +157,7 @@ export async function apiGetPatients(): Promise<ApiPatient[]> {
       notes: 'Paciente con rinitis alérgica estacional. Prefiere citas a primera hora.',
     },
     {
-      id: 'pat_ltcghry1mttqbj12',
+      id: 'pat_bymsx96dmtukub36',
       mrn: 'EXP-100582',
       name: 'Carlos Eduardo Ruiz',
       phone: '+34 655 987 321',
@@ -166,13 +166,22 @@ export async function apiGetPatients(): Promise<ApiPatient[]> {
       notes: 'Hipertensión arterial grado 1 en control.',
     },
     {
-      id: 'pat_h25o9ic0mttqbj12',
+      id: 'pat_9jnikz15mtukub36',
       mrn: 'EXP-100911',
       name: 'Lucía Méndez Gómez',
       phone: '+34 688 443 219',
       email: 'madre.lucia@example.com',
       blood_type: 'B+',
       notes: 'Control de crecimiento pediátrico al día.',
+    },
+    {
+      id: 'pat_fqt9tkjjmtukub36',
+      mrn: 'EXP-101402',
+      name: 'Javier Ramos Delgado',
+      phone: '+34 633 778 899',
+      email: 'javier.ramos@example.com',
+      blood_type: 'O-',
+      notes: 'Chequeo de medicina general y aptitud física deportiva.',
     },
   ];
 }
@@ -207,9 +216,9 @@ export async function apiGetAppointments(): Promise<ApiAppointment[]> {
 
   return [
     {
-      id: 'apt_8gt61arlmttqbj13',
-      patient_id: 'pat_anvm4atcmttqbj12',
-      doctor_id: 'doc_39ebgkzzmttqbj11',
+      id: 'apt_93d57qcnmtukub37',
+      patient_id: 'pat_bclrfygqmtukub36',
+      doctor_id: 'doc_9um6jsq7mtukub35',
       datetime: '2026-09-09T10:00:00',
       duration: 30,
       reason: 'Control de cefalea y fatiga general',
@@ -222,9 +231,9 @@ export async function apiGetAppointments(): Promise<ApiAppointment[]> {
       doctor_specialty: 'Medicina General',
     },
     {
-      id: 'apt_vwi5qpwimttqbj13',
-      patient_id: 'pat_ltcghry1mttqbj12',
-      doctor_id: 'doc_yc83uckgmttqbj11',
+      id: 'apt_2e7dmi5vmtukub37',
+      patient_id: 'pat_bymsx96dmtukub36',
+      doctor_id: 'doc_047jgbd1mtukub35',
       datetime: '2026-09-09T11:30:00',
       duration: 30,
       reason: 'Seguimiento de presión arterial y electrocardiograma',
@@ -235,6 +244,36 @@ export async function apiGetAppointments(): Promise<ApiAppointment[]> {
       patient_phone: '+34 655 987 321',
       doctor_name: 'Dr. Alejandro Mendoza',
       doctor_specialty: 'Cardiología',
+    },
+    {
+      id: 'apt_ducxi85pmtukub37',
+      patient_id: 'pat_9jnikz15mtukub36',
+      doctor_id: 'doc_h7hj069rmtukub36',
+      datetime: '2026-09-10T09:30:00',
+      duration: 30,
+      reason: 'Revisión pediátrica semestral de desarrollo',
+      status: 'pending',
+      notes: 'Primera consulta infantil',
+      booked_via: 'online',
+      patient_name: 'Lucía Méndez Gómez',
+      patient_phone: '+34 688 443 219',
+      doctor_name: 'Dra. Elena Vargas',
+      doctor_specialty: 'Pediatría',
+    },
+    {
+      id: 'apt_zzsztpnimtukub37',
+      patient_id: 'pat_fqt9tkjjmtukub36',
+      doctor_id: 'doc_9um6jsq7mtukub35',
+      datetime: '2026-09-11T14:00:00',
+      duration: 30,
+      reason: 'Certificado de aptitud médica deportiva',
+      status: 'confirmed',
+      notes: 'Agendado por voz',
+      booked_via: 'voice_agent',
+      patient_name: 'Javier Ramos Delgado',
+      patient_phone: '+34 633 778 899',
+      doctor_name: 'Dra. Sofía Morales',
+      doctor_specialty: 'Medicina General',
     },
   ];
 }

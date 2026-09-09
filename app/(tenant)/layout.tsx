@@ -2,19 +2,16 @@ import React from 'react';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
 import { TenantProvider } from '@/components/layout/TenantProvider';
-import { getCurrentTenant } from '@/lib/tenant/getTenant';
 
-export default async function TenantAppLayout({
+export default function TenantAppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const tenant = await getCurrentTenant();
-
   return (
     <TenantProvider
-      initialSlug={tenant?.slug || 'demo'}
-      initialName={tenant?.name || 'Clínica San Rafael'}
+      initialSlug="demo"
+      initialName="Clínica San Rafael"
     >
       <div className="min-h-screen flex bg-slate-50">
         <Sidebar />

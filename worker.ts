@@ -306,11 +306,21 @@ export default {
         return assetRes;
       }
 
-      // If route is a known SPA clean route, try fetching index.html of that route
-      const cleanPaths = ['/dashboard', '/appointments', '/patients', '/agent', '/doctors'];
-      if (cleanPaths.some((cp) => pathname.startsWith(cp))) {
-        const fallbackReq = new Request(new URL('/login.html', request.url), request);
-        return env.ASSETS.fetch(fallbackReq);
+      // If route is a known SPA clean route, try fetching the HTML page for that route
+      const cleanPaths = ['/dashboard', '/appointments', '/patients', '/agent', '/doctors', '/login', '/register'];
+      const matched = cleanPaths.find((cp) => pathname === cp || pathname.startsWith(cp + '/'));
+      if (matched) {
+        const cleanName = matched.replace(/^\//, '');
+        const routeReq = new Request(new URL(`/${cleanName}.html`, request.url), request);
+        const routeRes = await env.ASSETS.fetch(routeReq);
+        if (routeRes.status !== 404) {
+          return routeRes;
+        }
+        const indexReq = new Request(new URL(`/${cleanName}/index.html`, request.url), request);
+        const indexRes = await env.ASSETS.fetch(indexReq);
+        if (indexRes.status !== 404) {
+          return indexRes;
+        }
       }
 
       return assetRes;

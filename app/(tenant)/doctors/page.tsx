@@ -1,14 +1,20 @@
-import React from 'react';
-import { getCurrentTenant } from '@/lib/tenant/getTenant';
-import { listDoctors } from '@/lib/db/queries/doctors';
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { apiGetDoctors, ApiDoctor } from '@/lib/api/client';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Stethoscope, Calendar, Clock, CheckCircle2, Award, Mic } from 'lucide-react';
+import { Stethoscope, Clock, CheckCircle2, Award, Mic } from 'lucide-react';
 import Link from 'next/link';
 
-export default async function DoctorsPage() {
-  const tenant = await getCurrentTenant();
-  const doctors = listDoctors(tenant?.id || 'demo');
+export default function DoctorsPage() {
+  const [doctors, setDoctors] = useState<ApiDoctor[]>([]);
+
+  useEffect(() => {
+    apiGetDoctors().then((docs) => {
+      if (docs) setDoctors(docs);
+    });
+  }, []);
 
   return (
     <div className="space-y-6">
