@@ -1,9 +1,39 @@
 // Cloudflare Pages Function for /api/patients
 export async function onRequestGet(context: any) {
   try {
+    const { request, env } = context;
+    const tenantSlug = request?.headers?.get('x-tenant-slug') || 'demo';
+
+    if (env?.DB) {
+      try {
+        const res = await env.DB.prepare(
+          `SELECT p.* FROM patients p 
+           JOIN tenants t ON p.tenant_id = t.id 
+           WHERE t.slug = ? ORDER BY p.created_at DESC`
+        ).bind(tenantSlug).all();
+
+        if (res.results && res.results.length > 0) {
+          return new Response(
+            JSON.stringify({ patients: res.results, count: res.results.length }),
+            {
+              status: 200,
+              headers: {
+                'Content-Type': 'application/json; charset=utf-8',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                'Access-Control-Allow-Headers': '*',
+              },
+            }
+          );
+        }
+      } catch (e) {
+        console.warn('[D1 Pages] Error querying patients:', e);
+      }
+    }
+
     const defaultPatients = [
       {
-        id: 'pat_anvm4atcmttqbj12',
+        id: 'pat_bclrfygqmtukub36',
         mrn: 'EXP-100234',
         name: 'María Fernanda López',
         dob: '1989-04-12',
@@ -16,7 +46,7 @@ export async function onRequestGet(context: any) {
         notes: 'Paciente con rinitis alérgica estacional. Prefiere citas a primera hora.',
       },
       {
-        id: 'pat_ltcghry1mttqbj12',
+        id: 'pat_bymsx96dmtukub36',
         mrn: 'EXP-100582',
         name: 'Carlos Eduardo Ruiz',
         dob: '1975-11-23',
@@ -29,7 +59,7 @@ export async function onRequestGet(context: any) {
         notes: 'Hipertensión arterial grado 1 en control. Requiere monitoreo de presión.',
       },
       {
-        id: 'pat_h25o9ic0mttqbj12',
+        id: 'pat_9jnikz15mtukub36',
         mrn: 'EXP-100911',
         name: 'Lucía Méndez Gómez',
         dob: '2018-06-15',
@@ -42,7 +72,7 @@ export async function onRequestGet(context: any) {
         notes: 'Control de crecimiento pediátrico al día.',
       },
       {
-        id: 'pat_r02ucbo9mttqbj12',
+        id: 'pat_fqt9tkjjmtukub36',
         mrn: 'EXP-101402',
         name: 'Javier Ramos Delgado',
         dob: '1995-08-30',
