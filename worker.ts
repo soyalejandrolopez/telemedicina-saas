@@ -175,16 +175,48 @@ export default {
       return new Response(null, { status: 204, headers: corsHeaders });
     }
 
+    // Helper to get tenant slug
+    const tenantSlug = request.headers.get('x-tenant-slug') || 'demo';
+
     // 1. /api/doctors
     if (pathname === '/api/doctors') {
+      if (env.DB) {
+        try {
+          const res = await env.DB.prepare(
+            `SELECT d.* FROM doctors d 
+             JOIN tenants t ON d.tenant_id = t.id 
+             WHERE t.slug = ? AND d.active = 1`
+          ).bind(tenantSlug).all();
+          if (res.results && res.results.length > 0) {
+            return jsonResponse({ doctors: res.results, count: res.results.length });
+          }
+        } catch (e) {
+          console.warn('[D1] Error fetching doctors from D1, using runtime fallback:', e);
+        }
+      }
       return jsonResponse({ doctors: DEFAULT_DOCTORS, count: DEFAULT_DOCTORS.length });
     }
 
     // 2. /api/patients
     if (pathname === '/api/patients') {
       if (request.method === 'GET') {
+        if (env.DB) {
+          try {
+            const res = await env.DB.prepare(
+              `SELECT p.* FROM patients p 
+               JOIN tenants t ON p.tenant_id = t.id 
+               WHERE t.slug = ? ORDER BY p.created_at DESC`
+            ).bind(tenantSlug).all();
+            if (res.results && res.results.length > 0) {
+              return jsonResponse({ patients: res.results, count: res.results.length });
+            }
+          } catch (e) {
+            console.warn('[D1] Error fetching patients from D1, using runtime fallback:', e);
+          }
+        }
         return jsonResponse({ patients: runtimePatients, count: runtimePatients.length });
       }
+
       if (request.method === 'POST') {
         try {
           const body: any = await request.json().catch(() => ({}));
@@ -200,6 +232,33 @@ export default {
             medications: JSON.stringify(body.medications || []),
             notes: body.notes || 'Registrado desde portal',
           };
+
+          if (env.DB) {
+            try {
+              const tenant = await env.DB.prepare('SELECT id FROM tenants WHERE slug = ?').bind(tenantSlug).first();
+              if (tenant?.id) {
+                await env.DB.prepare(
+                  `INSERT INTO patients (id, tenant_id, mrn, name, phone, email, dob, blood_type, allergies, medications, notes)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+                ).bind(
+                  newPatient.id,
+                  tenant.id,
+                  newPatient.mrn,
+                  newPatient.name,
+                  newPatient.phone,
+                  newPatient.email,
+                  newPatient.dob,
+                  newPatient.blood_type,
+                  newPatient.allergies,
+                  newPatient.medications,
+                  newPatient.notes
+                ).run();
+              }
+            } catch (e) {
+              console.warn('[D1] Error inserting patient to D1:', e);
+            }
+          }
+
           runtimePatients.unshift(newPatient);
           return jsonResponse({ success: true, patient: newPatient }, 201);
         } catch (err: any) {
@@ -218,12 +277,29 @@ export default {
         '14:00', '14:30', '15:00', '15:30', '16:00', '16:30',
       ];
 
-      // Exclude slots already taken in runtimeAppointments
-      const takenDatetimes = new Set(
-        runtimeAppointments
-          .filter((a) => a.doctor_id === doctorId && a.datetime.startsWith(dateStr) && a.status !== 'cancelled')
-          .map((a) => a.datetime)
-      );
+      let takenDatetimes = new Set<string>();
+
+      if (env.DB) {
+        try {
+          const res = await env.DB.prepare(
+            `SELECT datetime FROM appointments 
+             WHERE doctor_id = ? AND datetime LIKE ? AND status != 'cancelled'`
+          ).bind(doctorId, `${dateStr}%`).all();
+          if (res.results) {
+            takenDatetimes = new Set(res.results.map((r: any) => r.datetime));
+          }
+        } catch (e) {
+          console.warn('[D1] Error fetching slots from D1:', e);
+        }
+      }
+
+      if (takenDatetimes.size === 0) {
+        takenDatetimes = new Set(
+          runtimeAppointments
+            .filter((a) => a.doctor_id === doctorId && a.datetime.startsWith(dateStr) && a.status !== 'cancelled')
+            .map((a) => a.datetime)
+        );
+      }
 
       const slots = defaultTimes.map((time) => {
         const datetime = `${dateStr}T${time}:00`;
@@ -241,8 +317,27 @@ export default {
     // 4. /api/appointments
     if (pathname === '/api/appointments') {
       if (request.method === 'GET') {
+        if (env.DB) {
+          try {
+            const res = await env.DB.prepare(
+              `SELECT a.*, p.name as patient_name, p.phone as patient_phone, p.email as patient_email, p.mrn as patient_mrn,
+                      d.name as doctor_name, d.specialty as doctor_specialty
+               FROM appointments a
+               JOIN tenants t ON a.tenant_id = t.id
+               LEFT JOIN patients p ON a.patient_id = p.id
+               LEFT JOIN doctors d ON a.doctor_id = d.id
+               WHERE t.slug = ? ORDER BY a.datetime DESC`
+            ).bind(tenantSlug).all();
+            if (res.results && res.results.length > 0) {
+              return jsonResponse({ appointments: res.results, count: res.results.length });
+            }
+          } catch (e) {
+            console.warn('[D1] Error fetching appointments from D1, using fallback:', e);
+          }
+        }
         return jsonResponse({ appointments: runtimeAppointments, count: runtimeAppointments.length });
       }
+
       if (request.method === 'POST') {
         try {
           const body: any = await request.json().catch(() => ({}));
@@ -250,7 +345,7 @@ export default {
 
           const newAppt = {
             id: 'apt_' + Math.random().toString(36).substring(2, 11),
-            patient_id: body.patient_id || 'pat_demo',
+            patient_id: body.patient_id || 'pat_bclrfygqmtukub36',
             doctor_id: doctor.id,
             datetime: body.datetime || new Date().toISOString(),
             duration: body.duration || 30,
@@ -265,6 +360,31 @@ export default {
             created_at: new Date().toISOString(),
           };
 
+          if (env.DB) {
+            try {
+              const tenant = await env.DB.prepare('SELECT id FROM tenants WHERE slug = ?').bind(tenantSlug).first();
+              if (tenant?.id) {
+                await env.DB.prepare(
+                  `INSERT INTO appointments (id, tenant_id, patient_id, doctor_id, datetime, duration, reason, status, notes, booked_via)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+                ).bind(
+                  newAppt.id,
+                  tenant.id,
+                  newAppt.patient_id,
+                  newAppt.doctor_id,
+                  newAppt.datetime,
+                  newAppt.duration,
+                  newAppt.reason,
+                  newAppt.status,
+                  newAppt.notes,
+                  newAppt.booked_via
+                ).run();
+              }
+            } catch (e) {
+              console.warn('[D1] Error inserting appointment to D1:', e);
+            }
+          }
+
           runtimeAppointments.unshift(newAppt);
           return jsonResponse({ success: true, appointment: newAppt }, 201);
         } catch (err: any) {
@@ -278,6 +398,13 @@ export default {
       const id = pathname.replace('/api/appointments/', '');
       if (request.method === 'PATCH') {
         const body: any = await request.json().catch(() => ({}));
+        if (env.DB && body.status) {
+          try {
+            await env.DB.prepare('UPDATE appointments SET status = ? WHERE id = ?').bind(body.status, id).run();
+          } catch (e) {
+            console.warn('[D1] Error updating appointment status in D1:', e);
+          }
+        }
         const appt = runtimeAppointments.find((a) => a.id === id);
         if (appt && body.status) {
           appt.status = body.status;
@@ -289,13 +416,23 @@ export default {
     // 6. /api/tenants
     if (pathname === '/api/tenants') {
       const body: any = await request.json().catch(() => ({}));
+      const newTenant = {
+        id: 't_' + Math.random().toString(36).substring(2, 11),
+        name: body.name || 'Clínica Demo',
+        slug: (body.slug || 'clinica-demo').toLowerCase().replace(/[^a-z0-9-]/g, '-'),
+      };
+      if (env.DB) {
+        try {
+          await env.DB.prepare(
+            `INSERT INTO tenants (id, name, slug, subdomain, plan) VALUES (?, ?, ?, ?, 'pro')`
+          ).bind(newTenant.id, newTenant.name, newTenant.slug, `${newTenant.slug}.medischedule.com`).run();
+        } catch (e) {
+          console.warn('[D1] Error inserting tenant to D1:', e);
+        }
+      }
       return jsonResponse({
         success: true,
-        tenant: {
-          id: 't_' + Math.random().toString(36).substring(2, 11),
-          name: body.name || 'Clínica Demo',
-          slug: (body.slug || 'clinica-demo').toLowerCase().replace(/[^a-z0-9-]/g, '-'),
-        },
+        tenant: newTenant,
       }, 201);
     }
 

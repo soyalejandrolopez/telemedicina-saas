@@ -6,3 +6,9 @@ compatibility_flags = ["nodejs_compat"]
 [assets]
 directory = "out"
 binding = "ASSETS"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "medischedule-db"
+database_id = "medischedule-db"
+migrations_dir = "migrations"
