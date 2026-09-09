@@ -57,6 +57,10 @@ async function testApiLogic() {
     }
   }
 
+  // Clean up created test appointment
+  const db = (await import('../lib/db/client')).getDb();
+  db.prepare('DELETE FROM appointments WHERE id = ?').run(newAppt.id);
+
   console.log('--- ALL API LOGIC TESTS PASSED! ---');
 }
 

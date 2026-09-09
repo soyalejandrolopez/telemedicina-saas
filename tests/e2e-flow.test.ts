@@ -124,6 +124,10 @@ async function runE2EFlow() {
   console.log(`    - Citas registradas: ${patientAppointments.length}`);
   console.log(`    - Alergias registradas: ${patientDetails?.allergies}`);
 
+  // Clean up created test tenant and cascading data
+  const db = (await import('../lib/db/client')).getDb();
+  db.prepare('DELETE FROM tenants WHERE id = ?').run(tenant.id);
+
   console.log('=====================================================');
   console.log('✨ TODAS LAS PRUEBAS E2E DEL SAAS PASARON EXITOSAMENTE');
   console.log('=====================================================');

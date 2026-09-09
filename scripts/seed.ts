@@ -10,12 +10,18 @@ async function seed() {
 
   const db = getDb();
 
-  // Clean existing demo data if any
-  const existingDemo = db.prepare('SELECT id FROM tenants WHERE slug = ?').get('demo') as { id: string } | undefined;
-  if (existingDemo) {
-    console.log('Cleaning old demo tenant...');
-    db.prepare('DELETE FROM tenants WHERE id = ?').run(existingDemo.id);
-  }
+  // Clean all existing data to ensure a pristine database state
+  console.log('Resetting and cleaning all tables...');
+  db.exec(`
+    DELETE FROM medical_records;
+    DELETE FROM appointments;
+    DELETE FROM time_slots;
+    DELETE FROM patients;
+    DELETE FROM doctors;
+    DELETE FROM users;
+    DELETE FROM tenants;
+    VACUUM;
+  `);
 
   // 1. Create Default Demo Clinic Tenant
   const passwordHash = hashPassword('admin1234');

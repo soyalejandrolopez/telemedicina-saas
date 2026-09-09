@@ -76,6 +76,10 @@ async function runDbTest() {
   }
   console.log('✔ Multi-tenant isolation verified: Tenant B cannot access Tenant A data.');
 
+  // Clean up test tenants so the database remains clean
+  const db = (await import('../lib/db/client')).getDb();
+  db.prepare('DELETE FROM tenants WHERE id IN (?, ?)').run(tenantA.id, tenantB.id);
+
   console.log('--- ALL DB TESTS PASSED SUCCESSFULLY! ---');
 }
 
