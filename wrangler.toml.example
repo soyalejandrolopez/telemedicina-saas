@@ -1,7 +1,7 @@
-name = "medischedule"
+name = "telemedicina-saas"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
-pages_build_output_dir = ".next"
+pages_build_output_dir = "out"
 
 # Cloudflare D1 Database Binding (Configurar o vincular en Settings > Functions del panel de Pages)
 # [[d1_databases]]

@@ -121,5 +121,5 @@ Suites individuales:
 4. **Compilar y Desplegar**:
    ```bash
    npm run build
-   npx wrangler pages deploy .next
+   npx wrangler pages deploy out
    ```

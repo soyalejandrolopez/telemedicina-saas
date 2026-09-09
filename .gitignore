@@ -4,5 +4,8 @@ node_modules/
 next-env.d.ts
 .DS_Store
 .env*.local
+out/
+dist/
 data/*.db-shm
 data/*.db-wal
+

@@ -38,46 +38,92 @@ function processDir(dir) {
 processDir(path.join(process.cwd(), '.next', 'static', 'chunks'));
 processDir(path.join(process.cwd(), '.next', 'server', 'app'));
 
-// Prepare .next directory for Cloudflare Pages static hosting
 const nextDir = path.join(process.cwd(), '.next');
 const serverAppDir = path.join(nextDir, 'server', 'app');
 const publicDir = path.join(process.cwd(), 'public');
 
-// 1. Copy public assets (e.g. hamster-software.jpg, icons) to .next root
-if (fs.existsSync(publicDir)) {
-  fs.cpSync(publicDir, nextDir, { recursive: true });
-}
+// Helper to populate a static directory for Cloudflare Pages / CDN hosting
+function populateStaticDir(targetDir) {
 
-// 2. Copy generated HTML pages to .next root so Cloudflare Pages serves them
-if (fs.existsSync(serverAppDir)) {
-  const htmlFiles = fs.readdirSync(serverAppDir).filter(f => f.endsWith('.html'));
-  for (const file of htmlFiles) {
-    const src = path.join(serverAppDir, file);
-    const dest = path.join(nextDir, file);
-    fs.copyFileSync(src, dest);
-    // Also create 404.html from _not-found.html
-    if (file === '_not-found.html') {
-      fs.copyFileSync(src, path.join(nextDir, '404.html'));
+  if (!fs.existsSync(targetDir)) {
+    fs.mkdirSync(targetDir, { recursive: true });
+  }
+
+  // 1. Copy public assets (e.g. hamster-software.jpg, icons) to target root
+  if (fs.existsSync(publicDir)) {
+    fs.cpSync(publicDir, targetDir, { recursive: true });
+  }
+
+  // 2. Copy generated HTML pages to target root so Cloudflare Pages serves them
+  if (fs.existsSync(serverAppDir)) {
+    const htmlFiles = fs.readdirSync(serverAppDir).filter(f => f.endsWith('.html'));
+    for (const file of htmlFiles) {
+      const src = path.join(serverAppDir, file);
+      const dest = path.join(targetDir, file);
+      fs.copyFileSync(src, dest);
+
+      // Create clean URL directory route (e.g. login/index.html from login.html)
+      const baseName = path.basename(file, '.html');
+      if (baseName !== 'index' && baseName !== '404' && !baseName.startsWith('_')) {
+        const routeDir = path.join(targetDir, baseName);
+        if (!fs.existsSync(routeDir)) {
+          fs.mkdirSync(routeDir, { recursive: true });
+        }
+        fs.copyFileSync(src, path.join(routeDir, 'index.html'));
+      }
+
+      // Also create 404.html from _not-found.html
+      if (file === '_not-found.html') {
+        fs.copyFileSync(src, path.join(targetDir, '404.html'));
+      }
     }
   }
-}
 
-// 3. Ensure .next/_next/static is available for client bundle requests (/_next/static/...)
-const underNextDir = path.join(nextDir, '_next');
-if (!fs.existsSync(underNextDir)) {
-  fs.mkdirSync(underNextDir, { recursive: true });
-}
-const staticSrc = path.join(nextDir, 'static');
-const staticDest = path.join(underNextDir, 'static');
-if (fs.existsSync(staticSrc) && !fs.existsSync(staticDest)) {
-  try {
-    fs.cpSync(staticSrc, staticDest, { recursive: true });
-  } catch (e) {
-    console.warn('Warning: Could not copy static dir:', e.message);
+  // 3. Ensure targetDir/_next/static is available for client bundle requests (/_next/static/...)
+  const underNextDir = path.join(targetDir, '_next');
+  if (!fs.existsSync(underNextDir)) {
+    fs.mkdirSync(underNextDir, { recursive: true });
   }
+  const staticSrc = path.join(nextDir, 'static');
+  const staticDest = path.join(underNextDir, 'static');
+  if (fs.existsSync(staticSrc)) {
+    try {
+      fs.cpSync(staticSrc, staticDest, { recursive: true });
+    } catch (e) {
+      console.warn('Warning: Could not copy static dir to ' + targetDir + ':', e.message);
+    }
+  }
+
+  // 4. Create _redirects and _headers for Cloudflare Pages clean routing
+  const redirectsContent = `/login /login.html 200
+/register /register.html 200
+/agent /#demo-agente 302
+/dashboard /login 302
+/appointments /login 302
+/patients /login 302
+/doctors /login 302
+`;
+  fs.writeFileSync(path.join(targetDir, '_redirects'), redirectsContent, 'utf8');
+
+  const headersContent = `/*
+  X-Frame-Options: SAMEORIGIN
+  X-Content-Type-Options: nosniff
+/_next/static/*
+  Cache-Control: public, max-age=31536000, immutable
+`;
+  fs.writeFileSync(path.join(targetDir, '_headers'), headersContent, 'utf8');
+
+  // Inject ASCII into HTML files
+  processDir(targetDir);
 }
 
-// Inject ASCII into any newly copied HTML files in .next root
-processDir(nextDir);
+// Populate out (standard for Cloudflare Pages), dist, and .next
+const outDir = path.join(process.cwd(), 'out');
+const distDir = path.join(process.cwd(), 'dist');
 
-console.log('✔ Postbuild: Código ASCII inyectado y artefactos estáticos (.html, /_next/static, public) preparados en .next para Cloudflare Pages');
+populateStaticDir(outDir);
+populateStaticDir(distDir);
+populateStaticDir(nextDir);
+
+console.log('✔ Postbuild: Código ASCII inyectado y artefactos estáticos (.html, /_next/static, public, _redirects, _headers) preparados en out/, dist/ y .next/ para Cloudflare Pages');
+
