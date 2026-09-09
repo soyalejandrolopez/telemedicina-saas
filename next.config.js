@@ -11,7 +11,7 @@
 const nextConfig = {
   reactStrictMode: true,
   experimental: {
-    serverComponentsExternalPackages: ["node:sqlite"],
+    serverComponentsExternalPackages: ["better-sqlite3"],
   },
 };
 
