@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/Input';
 import { TimeSlotPicker, Slot } from './TimeSlotPicker';
 import { Doctor, Patient } from '@/lib/db/schema';
 import { Calendar, User, Stethoscope, FileText, Check } from 'lucide-react';
+import { apiGetDoctors, apiGetPatients, apiGetSlots, apiCreateAppointment } from '@/lib/api/client';
 
 export function AppointmentBookingModal({
   isOpen,
@@ -38,22 +39,18 @@ export function AppointmentBookingModal({
   useEffect(() => {
     if (!isOpen) return;
 
-    fetch('/api/doctors')
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.doctors && data.doctors.length > 0) {
-          setDoctors(data.doctors);
-          setSelectedDoctorId(data.doctors[0].id);
-        }
-      });
+    apiGetDoctors().then((docs) => {
+      if (docs && docs.length > 0) {
+        setDoctors(docs as Doctor[]);
+        setSelectedDoctorId(docs[0].id);
+      }
+    });
 
-    fetch('/api/patients')
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.patients) {
-          setPatients(data.patients);
-        }
-      });
+    apiGetPatients().then((pats) => {
+      if (pats) {
+        setPatients(pats as Patient[]);
+      }
+    });
   }, [isOpen]);
 
   // Fetch slots whenever doctor or date changes
@@ -63,30 +60,12 @@ export function AppointmentBookingModal({
     setIsLoadingSlots(true);
     setSelectedSlot(null);
 
-    fetch(`/api/slots?doctorId=${selectedDoctorId}&date=${selectedDate}`)
-      .then(async (r) => {
-        if (!r.ok) throw new Error('Status ' + r.status);
-        const text = await r.text();
-        if (!text.trim().startsWith('{') && !text.trim().startsWith('[')) {
-          throw new Error('Not JSON');
-        }
-        return JSON.parse(text);
-      })
-      .then((data) => {
-        const returnedSlots = data.slots || [];
-        if (returnedSlots.length > 0) {
-          setSlots(returnedSlots);
-        } else {
-          // Fallback slots
-          const defaultTimes = ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30'];
-          setSlots(defaultTimes.map(t => ({ time: t, datetime: `${selectedDate}T${t}:00`, available: true })));
-        }
+    apiGetSlots(selectedDoctorId, selectedDate)
+      .then((returnedSlots) => {
+        setSlots(returnedSlots);
         setIsLoadingSlots(false);
       })
       .catch(() => {
-        // Fallback slots for static export / offline mode
-        const defaultTimes = ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30'];
-        setSlots(defaultTimes.map(t => ({ time: t, datetime: `${selectedDate}T${t}:00`, available: true })));
         setIsLoadingSlots(false);
       });
   }, [selectedDoctorId, selectedDate]);
@@ -121,21 +100,12 @@ export function AppointmentBookingModal({
         payload.patient_id = selectedPatientId;
       }
 
-      const res = await fetch('/api/appointments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Error al programar la cita');
-      }
+      await apiCreateAppointment(payload);
 
       if (onSuccess) onSuccess();
       onClose();
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'Error al procesar la cita');
     } finally {
       setIsSubmitting(false);
     }

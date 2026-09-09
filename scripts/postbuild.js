@@ -21,19 +21,26 @@ const htmlComment = `<!--\n${asciiArt}\n-->\n`;
 
 function processDir(dir, isRecursive = true) {
   if (!fs.existsSync(dir)) return;
-  const ignoredDirs = new Set(['node_modules', '.git', 'app', 'components', 'lib', 'scripts', 'tests', 'data', 'public']);
+  const ignoredDirs = new Set(['node_modules', '.git', 'app', 'components', 'lib', 'scripts', 'tests', 'data', 'public', '.next/cache']);
   const entries = fs.readdirSync(dir, { withFileTypes: true });
   for (const entry of entries) {
     const fullPath = path.join(dir, entry.name);
     if (entry.isDirectory()) {
-      if (isRecursive && !ignoredDirs.has(entry.name)) {
+      if (isRecursive && !ignoredDirs.has(entry.name) && !fullPath.includes('node_modules')) {
         processDir(fullPath, isRecursive);
       }
     } else if (entry.isFile()) {
-      if (entry.name.endsWith('.js') && (fullPath.includes('.next') || fullPath.includes('chunks'))) {
+      if (entry.name.endsWith('.js') && (fullPath.includes('.next') || fullPath.includes('chunks') || fullPath.includes('out') || fullPath.includes('dist'))) {
         let content = fs.readFileSync(fullPath, 'utf8');
         if (!content.startsWith('/*\n' + asciiArt)) {
-          fs.writeFileSync(fullPath, jsComment + content, 'utf8');
+          if (content.startsWith('#!')) {
+            const nl = content.indexOf('\n');
+            const shebang = content.slice(0, nl + 1);
+            const rest = content.slice(nl + 1);
+            fs.writeFileSync(fullPath, shebang + jsComment + rest, 'utf8');
+          } else {
+            fs.writeFileSync(fullPath, jsComment + content, 'utf8');
+          }
         }
       } else if (entry.name.endsWith('.html')) {
         let content = fs.readFileSync(fullPath, 'utf8');
@@ -174,8 +181,73 @@ function populateStaticDir(targetDir) {
   fs.writeFileSync(path.join(apiDir, 'appointments'), apptPayload, 'utf8');
   fs.writeFileSync(path.join(apiDir, 'appointments.json'), apptPayload, 'utf8');
 
+  const defaultDoctors = [
+    {
+      id: 'doc_yc83uckgmttqbj11',
+      name: 'Dr. Alejandro Mendoza',
+      specialty: 'Cardiología',
+      license_num: 'COL-MED-62118',
+      bio: 'Cardiólogo clínico intervencionista, experto en hipertensión arterial, ecocardiografía y arritmias.',
+      active: 1,
+    },
+    {
+      id: 'doc_ojolu4lpmttqbj12',
+      name: 'Dra. Elena Vargas',
+      specialty: 'Pediatría',
+      license_num: 'COL-MED-93451',
+      bio: 'Atención pediátrica integral, control del niño sano y urgencias respiratorias infantiles.',
+      active: 1,
+    },
+    {
+      id: 'doc_39ebgkzzmttqbj11',
+      name: 'Dra. Sofía Morales',
+      specialty: 'Medicina General',
+      license_num: 'COL-MED-84920',
+      bio: 'Especialista en medicina preventiva, control de enfermedades crónicas y chequeos integrales con más de 12 años de experiencia clínica.',
+      active: 1,
+    },
+  ];
+  const docPayload = JSON.stringify({ doctors: defaultDoctors, count: defaultDoctors.length });
+  fs.writeFileSync(path.join(apiDir, 'doctors'), docPayload, 'utf8');
+  fs.writeFileSync(path.join(apiDir, 'doctors.json'), docPayload, 'utf8');
+
+  const defaultPatients = [
+    {
+      id: 'pat_anvm4atcmttqbj12',
+      mrn: 'EXP-100234',
+      name: 'María Fernanda López',
+      phone: '+34 612 345 678',
+      email: 'maria.lopez@example.com',
+      blood_type: 'O+',
+      notes: 'Paciente con rinitis alérgica estacional. Prefiere citas a primera hora.',
+    },
+    {
+      id: 'pat_ltcghry1mttqbj12',
+      mrn: 'EXP-100582',
+      name: 'Carlos Eduardo Ruiz',
+      phone: '+34 655 987 321',
+      email: 'carlos.ruiz@example.com',
+      blood_type: 'A+',
+      notes: 'Hipertensión arterial grado 1 en control.',
+    },
+    {
+      id: 'pat_h25o9ic0mttqbj12',
+      mrn: 'EXP-100911',
+      name: 'Lucía Méndez Gómez',
+      phone: '+34 688 443 219',
+      email: 'madre.lucia@example.com',
+      blood_type: 'B+',
+      notes: 'Control de crecimiento pediátrico al día.',
+    },
+  ];
+  const patPayload = JSON.stringify({ patients: defaultPatients, count: defaultPatients.length });
+  fs.writeFileSync(path.join(apiDir, 'patients'), patPayload, 'utf8');
+  fs.writeFileSync(path.join(apiDir, 'patients.json'), patPayload, 'utf8');
+
   // Inject ASCII into HTML files
-  processDir(targetDir);
+  if (targetDir !== process.cwd()) {
+    processDir(targetDir);
+  }
 }
 
 // Populate root (if Cloudflare Pages is set to root), out (standard), dist, and .next

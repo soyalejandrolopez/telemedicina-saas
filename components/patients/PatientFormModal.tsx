@@ -5,6 +5,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { User, Phone, Mail, Droplets, AlertTriangle, Pill, Check } from 'lucide-react';
+import { apiCreatePatient } from '@/lib/api/client';
 
 export function PatientFormModal({
   isOpen,
@@ -47,29 +48,24 @@ export function PatientFormModal({
         .map((s) => s.trim())
         .filter(Boolean);
 
-      const res = await fetch('/api/patients', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: name.trim(),
-          dob: dob || undefined,
-          gender,
-          phone: phone.trim() || undefined,
-          email: email.trim() || undefined,
-          blood_type: bloodType,
-          allergies,
-          medications,
-          notes: notes.trim() || undefined,
-        }),
+      const patient = await apiCreatePatient({
+        name: name.trim(),
+        dob: dob || undefined,
+        gender,
+        phone: phone.trim() || undefined,
+        email: email.trim() || undefined,
+        blood_type: bloodType,
+        allergies,
+        medications,
+        notes: notes.trim() || undefined,
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Error al guardar paciente');
+      if (!patient) throw new Error('Error al guardar el paciente');
 
       if (onSuccess) onSuccess();
       onClose();
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'Error al guardar paciente');
     } finally {
       setIsSubmitting(false);
     }

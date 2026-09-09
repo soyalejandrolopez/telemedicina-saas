@@ -8,6 +8,7 @@ import { AppointmentBookingModal } from '@/components/appointments/AppointmentBo
 import { AppointmentWithDetails } from '@/lib/db/queries/appointments';
 import { Doctor } from '@/lib/db/schema';
 import { Loader2 } from 'lucide-react';
+import { apiGetAppointments, apiGetDoctors, apiUpdateAppointmentStatus } from '@/lib/api/client';
 
 export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<AppointmentWithDetails[]>([]);
@@ -18,16 +19,13 @@ export default function AppointmentsPage() {
   const loadData = useCallback(async () => {
     try {
       setIsLoading(true);
-      const [apptRes, docRes] = await Promise.all([
-        fetch('/api/appointments'),
-        fetch('/api/doctors'),
+      const [appts, docs] = await Promise.all([
+        apiGetAppointments(),
+        apiGetDoctors(),
       ]);
 
-      const apptData = await apptRes.json();
-      const docData = await docRes.json();
-
-      setAppointments(apptData.appointments || []);
-      setDoctors(docData.doctors || []);
+      setAppointments(appts as unknown as AppointmentWithDetails[]);
+      setDoctors(docs as Doctor[]);
     } catch (e) {
       console.error('Error fetching appointments:', e);
     } finally {
@@ -41,12 +39,8 @@ export default function AppointmentsPage() {
 
   const handleStatusChange = async (id: string, status: string) => {
     try {
-      const res = await fetch(`/api/appointments/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
-      });
-      if (res.ok) {
+      const ok = await apiUpdateAppointmentStatus(id, status);
+      if (ok) {
         loadData();
       }
     } catch (e) {

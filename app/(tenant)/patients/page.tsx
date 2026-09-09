@@ -7,6 +7,7 @@ import { PatientList } from '@/components/patients/PatientList';
 import { PatientFormModal } from '@/components/patients/PatientFormModal';
 import { Patient } from '@/lib/db/schema';
 import { Loader2 } from 'lucide-react';
+import { apiGetPatients } from '@/lib/api/client';
 
 export default function PatientsPage() {
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -16,9 +17,8 @@ export default function PatientsPage() {
   const loadPatients = useCallback(async () => {
     try {
       setIsLoading(true);
-      const res = await fetch('/api/patients');
-      const data = await res.json();
-      setPatients(data.patients || []);
+      const pats = await apiGetPatients();
+      setPatients(pats as Patient[]);
     } catch (e) {
       console.error(e);
     } finally {
